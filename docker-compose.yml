@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://outboundos:outboundos@db:5432/outboundos
+      REDIS_URL: redis://redis:6379/0
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+      - otel-collector
+    volumes:
+      - .:/app
+    secrets:
+      - openai_api_key
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uv run arq app.workers.background.WorkerSettings
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://outboundos:outboundos@db:5432/outboundos
+      REDIS_URL: redis://redis:6379/0
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+    secrets:
+      - openai_api_key
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: outboundos
+      POSTGRES_USER: outboundos
+      POSTGRES_PASSWORD: outboundos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.106.1
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4318:4318"
+
+volumes:
+  postgres_data:
+
+secrets:
+  openai_api_key:
+    file: ./secrets/openai_api_key.txt

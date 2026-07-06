@@ -1,0 +1,14 @@
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.pyc
+*.pyo
+*.pyd
+.git
+dashboard/node_modules
+dashboard/dist
+secrets
+.mplconfig
+.cache

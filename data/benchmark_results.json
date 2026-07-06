@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "published_at": "2026-07-06T04:54:26.417344+00:00",
+  "status": "official",
+  "dataset": {
+    "name": "OutboundBench",
+    "path": "data/outboundbench_companies.csv",
+    "size": 100
+  },
+  "run": {
+    "run_id": "eval-20260706-045418",
+    "generated_at": "2026-07-06T04:54:18.151572+00:00",
+    "report_dir": "app/evaluation/history/eval-20260706-045418",
+    "quality_threshold": 0.75,
+    "max_concurrency": 2,
+    "agents_mode": "live"
+  },
+  "metrics": {
+    "research_accuracy": 0.97,
+    "icp_accuracy": 0.911,
+    "pain_point_accuracy": 0.8908,
+    "persona_accuracy": 0.27,
+    "email_quality": 0.962,
+    "reviewer_agreement": 0.965
+  },
+  "operations": {
+    "avg_latency_ms": 38925.8,
+    "avg_cost_usd": 0.008829,
+    "avg_tokens": 3531.4
+  },
+  "metric_definitions": {
+    "research_accuracy": "Token overlap between predicted and ground-truth industry labels.",
+    "icp_accuracy": "1 - |predicted_icp - target_icp| / 100.",
+    "pain_point_accuracy": "Fraction of GT pain points with sufficient token overlap in predictions.",
+    "persona_accuracy": "Role-family overlap between predicted buyer enum and GT persona text.",
+    "email_quality": "Weighted composite: company name (20%), pain overlap (40%), reference facts (25%), CTA (15%).",
+    "reviewer_agreement": "Agreement with expected reviewer decision derived from research + email quality."
+  },
+  "notes": "Official n=100 OutboundBench baseline with current metric definitions (July 2026)."
+}
