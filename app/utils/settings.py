@@ -32,6 +32,13 @@ class Settings(BaseSettings):
 
     rate_limit_per_minute: int = 120
 
+    dashboard_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

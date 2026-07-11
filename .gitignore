@@ -13,3 +13,5 @@ __pycache__/
 .ruff_cache/
 *.db
 .DS_Store
+docs/WALKTHROUGH_GUIDE.md
+docs/WALKTHROUGH_SCRIPT.md
