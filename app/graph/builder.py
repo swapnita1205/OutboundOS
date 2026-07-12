@@ -43,7 +43,9 @@ async def icp_analysis_node(state: OutboundWorkflowState) -> OutboundWorkflowSta
     start = perf_counter()
 
     summary = updated["company_summary"]
-    icp = await icp_agent.run(ICPAgentInput(company_summary=summary))
+    icp = await icp_agent.run(
+        ICPAgentInput(company_summary=summary, seller_profile=updated["seller_profile"])
+    )
     updated["icp_score"] = icp
     _append_trace(updated, "icp", f"ICP score assigned at {icp.score}.")
     _track_metrics(updated, start, icp.model_dump_json())
@@ -74,6 +76,7 @@ async def persona_selection_node(state: OutboundWorkflowState) -> OutboundWorkfl
         PersonaAgentInput(
             company_summary=updated["company_summary"],
             icp_score=updated["icp_score"].score,
+            seller_profile=updated["seller_profile"],
         )
     )
     updated["persona_selection"] = persona

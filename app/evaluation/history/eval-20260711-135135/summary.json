@@ -1,0 +1,14 @@
+{
+  "run_id": "eval-20260711-135135",
+  "generated_at": "2026-07-11T13:51:35.199940Z",
+  "dataset_size": 100,
+  "research_accuracy": 0.97,
+  "icp_accuracy": 0.784,
+  "persona_accuracy": 0.16,
+  "pain_point_accuracy": 0.8733333333333333,
+  "reviewer_agreement": 0.965,
+  "email_similarity": 0.9646666666666667,
+  "avg_latency_ms": 56264.683277834556,
+  "avg_cost_usd": 0.009766350000000002,
+  "avg_tokens": 3906.54
+}

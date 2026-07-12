@@ -39,6 +39,8 @@ class Settings(BaseSettings):
         ]
     )
 
+    seller_profile_path: str | None = "config/seller_profile.json"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

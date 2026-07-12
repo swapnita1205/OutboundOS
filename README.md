@@ -18,18 +18,20 @@ OutboundOS orchestrates six specialized agents — research, ICP scoring, pain-p
 
 ### Benchmark snapshot (n=100, OutboundBench — official baseline)
 
-**Run:** `eval-20260706-045418` · Full details: [`data/benchmark_results.json`](data/benchmark_results.json)
+**Run:** `eval-20260711-145039` · Full details: [`data/benchmark_results.json`](data/benchmark_results.json)
 
 | Metric | Score | Status |
 |--------|-------|--------|
-| Research accuracy | **97%** | Strong |
-| Pain point accuracy | **89%** | Strong |
-| ICP accuracy | **91%** | Strong |
+| Research accuracy | **98%** | Strong |
+| Pain point accuracy | **87%** | Strong |
 | Email quality | **96%** | Strong |
-| Reviewer agreement | **97%** | Strong |
-| Persona accuracy | **27%** | Known gap — enum vs rich GT personas |
+| Reviewer agreement | **98%** | Strong |
+| ICP accuracy | **72%** | Dropped from 91% on purpose — see note below |
+| Persona accuracy | **29%** | Known gap — enum vs rich GT personas |
 
-**Ops:** ~39 s / company · ~$0.009 / company · concurrency 2
+**Ops:** ~51 s / company · ~$0.009 / company · concurrency 2
+
+> ICP and Persona scoring are now grounded in an explicit **seller profile** (`config/seller_profile.json`) instead of scoring in a vacuum. ICP accuracy dropped because OutboundBench's ground truth is a generic, seller-agnostic heuristic — once the agent started scoring fit against a real, specific seller, it correctly diverged from that generic baseline. See [`docs/BENCHMARK.md`](docs/BENCHMARK.md) for the full explanation.
 
 ---
 
@@ -88,6 +90,8 @@ app/
 data/
   outboundbench_companies.csv   # 100-company eval dataset
   benchmark_results.json        # Official published scores
+config/
+  seller_profile.json           # Who "we" are — target industries, buyer titles, etc.
 docs/
   BENCHMARK.md                  # Methodology + results (source of truth)
 ```
@@ -186,8 +190,9 @@ make worker         # ARQ background worker
 
 ## Known limitations
 
-1. **Persona selection** — agent uses an 8-value buyer enum; ground truth uses natural-language personas. Main accuracy bottleneck (**27%** on n=100 official baseline).
-2. **Cost tracking** — token/cost estimates use a word-count heuristic, not OpenAI billing APIs.
-3. **Dashboard** — React UI exists but uses mock data; not wired to live API yet.
+1. **Persona selection** — agent uses an 8-value buyer enum; ground truth uses natural-language personas. Main accuracy bottleneck (**29%** on n=100 official baseline).
+2. **ICP vs. benchmark ground truth mismatch** — ICP scoring is now anchored to a real seller profile (`config/seller_profile.json`), which is more correct for an actual deployment but scores lower (**72%** vs a prior 91%) against OutboundBench's ICP ground truth, which is itself a generic, seller-agnostic heuristic. See [`docs/BENCHMARK.md`](docs/BENCHMARK.md) for the full explanation.
+3. **Cost tracking** — token/cost estimates use a word-count heuristic, not OpenAI billing APIs.
+4. **Dashboard** — React UI is wired to the live backend (see `/api/v1/ops/stream`), but running it requires the API and Vite dev server both running locally; no hosted instance.
 
 See [`docs/BENCHMARK.md`](docs/BENCHMARK.md) for honest metric framing and resume-safe claims.

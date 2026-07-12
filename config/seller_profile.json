@@ -1,0 +1,32 @@
+{
+  "company_name": "OutboundOS",
+  "product_description": "An AI-native outbound sales platform that researches companies, scores ICP fit, identifies pain points, and drafts evidence-grounded personalized outreach automatically for sales and revenue teams.",
+  "value_propositions": [
+    "Cuts SDR research and drafting time from ~20 minutes to under a minute per account.",
+    "Grounds every claim in live web evidence instead of generic templates.",
+    "Adds a self-reviewing quality gate before any email goes out."
+  ],
+  "target_industries": [
+    "B2B SaaS",
+    "Sales technology",
+    "Marketing technology",
+    "Revenue operations tooling"
+  ],
+  "target_company_size": "50-2000 employees, Series A and later",
+  "target_geographies": ["North America", "Europe"],
+  "ideal_tech_signals": [
+    "Uses a CRM (Salesforce, HubSpot, etc.)",
+    "Has a dedicated outbound/SDR function",
+    "Recent GTM or sales-team hiring activity"
+  ],
+  "target_buyer_titles": [
+    "VP Sales",
+    "Head of Revenue Operations",
+    "Chief Revenue Officer",
+    "Sales Development Manager"
+  ],
+  "disqualifiers": [
+    "Pure consumer (B2C) company with no B2B sales motion",
+    "No dedicated sales or GTM team"
+  ]
+}

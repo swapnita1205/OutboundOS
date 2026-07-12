@@ -106,7 +106,11 @@ async def stream_workflow(payload: StreamWorkflowRequest) -> StreamingResponse:
         latest_state: OutboundWorkflowState = state
 
         try:
-            started_payload = {"type": "started", "company_name": payload.company_name}
+            started_payload = {
+                "type": "started",
+                "company_name": payload.company_name,
+                "seller_profile": state["seller_profile"].model_dump(),
+            }
             yield f"data: {json.dumps(started_payload)}\n\n"
 
             async for update in graph.astream(state, stream_mode="updates"):

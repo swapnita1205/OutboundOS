@@ -1,10 +1,12 @@
 from pydantic import BaseModel, Field
 
 from app.schemas.company_summary import CompanySummary
+from app.schemas.seller_profile import SellerProfile
 
 
 class ICPAgentInput(BaseModel):
     company_summary: CompanySummary
+    seller_profile: SellerProfile = Field(default_factory=SellerProfile)
 
 
 class ICPScore(BaseModel):

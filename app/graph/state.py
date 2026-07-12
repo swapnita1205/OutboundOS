@@ -6,6 +6,8 @@ from app.schemas.messaging import OutboundMessageBundle
 from app.schemas.pain_points import PainPointOutput
 from app.schemas.persona import PersonaSelection
 from app.schemas.reviewer import ReviewerCritique
+from app.schemas.seller_profile import SellerProfile
+from app.utils.seller_profile import get_seller_profile
 
 WorkflowDecision = Literal["APPROVE", "REWRITE", "RESEARCH"]
 
@@ -14,6 +16,7 @@ class OutboundWorkflowState(TypedDict):
     company_name: str
     website: str
     hiring_trends: list[str]
+    seller_profile: SellerProfile
     quality_threshold: float
     max_iterations: int
     iteration_count: int
@@ -40,6 +43,7 @@ def create_initial_state(
     website: str,
     *,
     hiring_trends: list[str] | None = None,
+    seller_profile: SellerProfile | None = None,
     quality_threshold: float = 0.7,
     max_iterations: int = 4,
 ) -> OutboundWorkflowState:
@@ -47,6 +51,7 @@ def create_initial_state(
         company_name=company_name,
         website=website,
         hiring_trends=hiring_trends or [],
+        seller_profile=seller_profile or get_seller_profile(),
         quality_threshold=quality_threshold,
         max_iterations=max_iterations,
         iteration_count=0,

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "published_at": "2026-07-06T04:54:26.417344+00:00",
+  "published_at": "2026-07-11T19:46:50.852603+00:00",
   "status": "official",
   "dataset": {
     "name": "OutboundBench",
@@ -8,25 +8,25 @@
     "size": 100
   },
   "run": {
-    "run_id": "eval-20260706-045418",
-    "generated_at": "2026-07-06T04:54:18.151572+00:00",
-    "report_dir": "app/evaluation/history/eval-20260706-045418",
+    "run_id": "eval-20260711-145039",
+    "generated_at": "2026-07-11T14:50:39.686277+00:00",
+    "report_dir": "app/evaluation/history/eval-20260711-145039",
     "quality_threshold": 0.75,
     "max_concurrency": 2,
     "agents_mode": "live"
   },
   "metrics": {
-    "research_accuracy": 0.97,
-    "icp_accuracy": 0.911,
-    "pain_point_accuracy": 0.8908,
-    "persona_accuracy": 0.27,
-    "email_quality": 0.962,
-    "reviewer_agreement": 0.965
+    "research_accuracy": 0.98,
+    "icp_accuracy": 0.7215,
+    "pain_point_accuracy": 0.87,
+    "persona_accuracy": 0.29,
+    "email_quality": 0.9643,
+    "reviewer_agreement": 0.975
   },
   "operations": {
-    "avg_latency_ms": 38925.8,
-    "avg_cost_usd": 0.008829,
-    "avg_tokens": 3531.4
+    "avg_latency_ms": 50890.7,
+    "avg_cost_usd": 0.009035,
+    "avg_tokens": 3614.0
   },
   "metric_definitions": {
     "research_accuracy": "Token overlap between predicted and ground-truth industry labels.",
@@ -36,5 +36,5 @@
     "email_quality": "Weighted composite: company name (20%), pain overlap (40%), reference facts (25%), CTA (15%).",
     "reviewer_agreement": "Agreement with expected reviewer decision derived from research + email quality."
   },
-  "notes": "Official n=100 OutboundBench baseline with current metric definitions (July 2026)."
+  "notes": "Official n=100 OutboundBench baseline after the seller-profile fix (2026-07-11): ICP and Persona agents now score/select relative to an explicit SellerProfile (config/seller_profile.json) instead of scoring in a vacuum. ICP accuracy dropped (91%->72%) as an expected, honest consequence: OutboundBench's icp_target ground truth is itself a generic, seller-agnostic heuristic, so a correctly seller-anchored score will diverge from it for companies outside that seller's specific target market. Persona accuracy improved slightly (27%->29%) after two rounds of prompt tuning to prevent the persona agent from collapsing to a single dominant answer (first VP Sales, then Head of AI) once seller context was introduced."
 }

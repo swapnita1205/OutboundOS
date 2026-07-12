@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.company_summary import CompanySummary
+from app.schemas.seller_profile import SellerProfile
 
 BuyerPersona = Literal[
     "Founder",
@@ -19,6 +20,7 @@ BuyerPersona = Literal[
 class PersonaAgentInput(BaseModel):
     company_summary: CompanySummary
     icp_score: float | None = Field(default=None, ge=0, le=100)
+    seller_profile: SellerProfile = Field(default_factory=SellerProfile)
 
 
 class PersonaSelection(BaseModel):
