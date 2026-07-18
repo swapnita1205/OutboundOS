@@ -80,7 +80,11 @@ def _looks_like_not_found(markdown: str) -> bool:
     return any(pattern in lowered for pattern in _NOT_FOUND_PATTERNS)
 
 
-def discover_internal_links(markdown: str, base_url: str, limit: int = MAX_DISCOVERED_PAGES) -> list[str]:
+def discover_internal_links(
+    markdown: str,
+    base_url: str,
+    limit: int = MAX_DISCOVERED_PAGES,
+) -> list[str]:
     """Find real same-domain links from a homepage's own markdown, ranked by relevance.
 
     This replaces blindly guessing a fixed slug list (/about, /pricing, ...) which 404s on
