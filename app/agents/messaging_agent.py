@@ -60,6 +60,7 @@ class MessagingAgent:
             await llm.parse(
                 system_prompt=MESSAGING_SYSTEM_PROMPT,
                 user_prompt=MESSAGING_USER_TEMPLATE.format(
+                    seller_profile=agent_input.seller_profile.model_dump_json(),
                     company_name=summary.company,
                     industry=summary.industry,
                     persona=agent_input.persona_selection.persona,
@@ -79,6 +80,7 @@ class MessagingAgent:
     def _run_heuristic(agent_input: MessagingAgentInput) -> OutboundMessageBundle:
         company = agent_input.company_summary.company
         persona = agent_input.persona_selection.persona
+        seller_name = agent_input.seller_profile.company_name
         primary_pain = (
             agent_input.pain_points[0].description
             if agent_input.pain_points
@@ -87,7 +89,7 @@ class MessagingAgent:
         cta = f"Open to a 15-minute chat next week to explore this with your {persona} team?"
         cold_email = (
             f"Hi there, I was reading about {company} and noticed {primary_pain.lower()}. "
-            f"We built OutboundOS to help {persona} teams automate research "
+            f"We built {seller_name} to help {persona} teams automate research "
             f"and personalized outreach. {cta}"
         )
         return OutboundMessageBundle(

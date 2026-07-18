@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
@@ -8,6 +9,17 @@ from app.tools.web_search import search_web
 from app.utils.settings import Settings
 
 logger = logging.getLogger("outboundos.tools.company_evidence")
+
+_IMAGE_MARKDOWN_PATTERN = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_LINK_MARKDOWN_PATTERN = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_JUNK_LINE_SUBSTRINGS = (
+    "vimeo",
+    "youtube.com",
+    "video thumbnail",
+    "thumbnail",
+    ".mp4",
+    "cloudfront.net",
+)
 
 
 @dataclass(slots=True)
@@ -32,9 +44,36 @@ def _classify_source(url: str, source_hint: str) -> str:
     return "website"
 
 
-def _snippet_from_markdown(markdown: str, limit: int = 400) -> str:
-    cleaned = " ".join(markdown.split())
-    return cleaned[:limit]
+def _snippet_from_markdown(markdown: str, limit: int = 500) -> str:
+    """Build a snippet from the first substantive lines, skipping embeds/nav/boilerplate.
+
+    A flat "first N characters" cut can accidentally grab a video-embed caption or a bare
+    nav-link list if that happens to be what a page's markdown leads with, starving the LLM
+    of the real body copy that sits just below it. Instead, walk lines and keep only ones
+    that read like actual prose.
+    """
+    without_images = _IMAGE_MARKDOWN_PATTERN.sub(" ", markdown)
+    substantive: list[str] = []
+    total_len = 0
+    for raw_line in without_images.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if any(junk in line.lower() for junk in _JUNK_LINE_SUBSTRINGS):
+            continue
+        text_only = _LINK_MARKDOWN_PATTERN.sub(r"\1", line).strip()
+        if len(text_only.split()) < 5:
+            continue
+        substantive.append(text_only)
+        total_len += len(text_only)
+        if total_len >= limit:
+            break
+
+    if not substantive:
+        cleaned = " ".join(without_images.split())
+        return cleaned[:limit]
+
+    return " ".join(substantive)[:limit]
 
 
 def format_evidence_block(evidence: list[EvidenceItem]) -> str:

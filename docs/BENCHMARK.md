@@ -15,36 +15,27 @@ OutboundBench is a 100-company, evidence-grounded evaluation dataset for AI outb
 | `company_name`, `website` | Target account |
 | `industry`, `short_description` | Ground-truth company profile |
 | `target_persona` | Natural-language buyer persona (not a fixed enum) |
-| `pain_points` | 3–5 evidence-backed pain points |
-| `evidence_urls`, `evidence_snippets` | Source URLs and excerpts used to derive labels |
-| `reference_outreach` | Human-style reference cold email |
-| `confidence_score`, `source_quality_score` | Pipeline confidence signals |
-| `needs_human_review` | Flag for records that failed automated validation |
+| `pain_points` | Evidence-backed pain points |
+| `evidence_urls`, `evidence_snippets` | Source URLs and excerpts the labels were derived from |
+| `reference_outreach` | Reference cold email |
 
-### Dataset quality (build-time validation)
+### How the ground truth is built
 
-| Stat | Value |
-|------|-------|
-| Companies | 100 |
-| Passed automated validation | **89** |
-| Needs human review | 11 |
-| Avg confidence | 0.88 |
-| Avg source quality | 0.97 |
+- **Evidence** is collected per company via live web scraping — Firecrawl page scrapes (homepage, about, careers, blog, docs, pricing, customers) plus Tavily search — and classified by source type (website, blog, docs, careers, news).
+- **Labels** (industry, description, persona, pain points, reference outreach) are **authored by hand** from that evidence in a labeling worksheet.
+- Because the labels are human judgment rather than model output, the benchmark measures **agent quality against an independent source of truth**, not agreement between two models using similar vocabulary.
 
-### Build the dataset
+**Files:** `data/human_ground_truth/outboundbench_human.csv` (dataset), `data/human_ground_truth/worksheet.csv` (evidence + human labels).
+
+### Compile / report
 
 ```bash
-# Requires OPENAI_API_KEY, FIRECRAWL_API_KEY, TAVILY_API_KEY in .env
-make outboundbench
+# Compile the filled-in worksheet into the dataset CSV
+make human-ground-truth
 
-# Re-validate an existing CSV without rebuilding
-make outboundbench-revalidate
-
-# Quality report
+# Dataset quality/distribution report
 make outboundbench-report
 ```
-
-**Outputs:** `data/outboundbench_companies.csv`, `.jsonl`, `outboundbench_review_queue.csv`
 
 ---
 
@@ -89,63 +80,68 @@ All scores are in `[0, 1]` unless noted. Higher is better.
 |--------|------------------|-------|
 | **Research accuracy** | Industry label match vs ground truth | Token overlap; exact match = 1.0 |
 | **ICP accuracy** | ICP score vs target | `1 - |predicted - target| / 100` |
-| **Pain point accuracy** | GT pain points covered by predictions | Per-pain token overlap threshold |
+| **Pain point accuracy** | GT pain points covered by predictions | Per GT pain: **max** of token overlap and embedding-cosine paraphrase match |
 | **Persona accuracy** | Predicted buyer vs GT persona text | Role-family matching (sales, engineering, finance, etc.) |
-| **Email quality** | Cold email vs GT pains + reference outreach | Weighted: company name 20%, pain overlap 40%, reference facts 25%, CTA 15% |
+| **Email quality** | Cold email vs GT pains + reference outreach | Weighted: company name 20%, pain coverage 40%, reference facts 25%, CTA 15% |
 | **Reviewer agreement** | Reviewer decision vs expected decision | Expected derived from research + email quality |
+
+### Semantic (paraphrase-aware) scoring
+
+Pain-point and email pain-coverage scoring combine two signals and take the better of the two per ground-truth pain:
+
+1. **Token overlap** — fast exact/near-exact wording match (retained as a floor).
+2. **Embedding cosine** — each ground-truth pain is embedded (`text-embedding-3-small`) and compared to the agent's pain points / email sentences by cosine similarity, mapped through a tolerance band: **≥ 0.60 cosine = full credit, ≤ 0.35 = zero, linear in between**.
+
+Why: pure token overlap scores paraphrases as total misses — e.g. "knowledge scattered across disconnected tools" vs "teams struggle with fragmented information" share almost no tokens but mean the same thing. Against human-authored ground truth (which uses different vocabulary than any LLM), that weakness dominates the score. The band was calibrated against real pairs — genuine paraphrases land at ~0.59–0.61 cosine, unrelated pains at ~0.30 — so the threshold cleanly separates them. When no OpenAI key is available (CI/offline) or the embeddings call fails mid-run, scoring degrades gracefully to pure token overlap.
+
+This is neither Jaccard (intersection/union) nor a single hard cutoff — it's token overlap as an exact-wording floor plus embedding cosine with a calibrated tolerance band for paraphrases.
 
 ### Honest framing
 
-- **Strong today:** research, pain points — these reflect real web-grounded intelligence quality.
-- **Improving:** email quality — composite metric replaced raw string similarity in July 2026; scores are not comparable to pre-v2 runs.
-- **Known gap:** persona accuracy — agent outputs a coarse 8-value enum; ground truth uses rich natural-language personas (e.g. "Designers and Design Teams"). Family matching helps but does not fully close the gap.
-- **Known benchmark/agent mismatch (new, July 2026):** ICP accuracy — see "The seller-profile fix" below. The agent now scores fit against a real, explicit seller profile; the benchmark's ground truth does not model any specific seller, so the two are answering subtly different questions.
+- **Strong:** research, email quality, reviewer agreement — real web-grounded intelligence and structurally sound, pain-grounded outreach.
+- **Solid:** pain points and ICP — pain points are paraphrase-aware against independent human labels; ICP is anchored to a real seller profile.
+- **Known gap:** persona accuracy — the agent outputs a coarse 8-value enum; ground truth uses rich natural-language personas (e.g. "Designers and Design Teams"). Family matching helps but does not fully close the gap.
+- **Known benchmark/agent mismatch:** ICP accuracy — see "Seller-profile-aware ICP/Persona" below. The agent scores fit against a real, explicit seller profile; the benchmark's ICP target does not model any specific seller, so the two answer subtly different questions.
 
-### The seller-profile fix (why ICP accuracy dropped from 91% to 72%, on purpose)
+### Seller-profile-aware ICP/Persona
 
-Before July 11, 2026, the ICP agent scored companies with **zero information about who "we" are** — no target industries, no target buyer titles, nothing. It effectively measured "how impressive/well-documented is this company," not "is this company a good fit for a specific seller." That's a real product gap, not a benchmark artifact.
+The ICP and Persona agents score/select relative to an explicit `SellerProfile` (`app/schemas/seller_profile.py`, configured via `config/seller_profile.json`) — target industries, company size, buyer titles, disqualifiers — injected into both prompts. It defaults to describing OutboundOS itself (an outbound-automation platform targeting B2B SaaS / sales-tech / martech / RevOps-tooling companies).
 
-The fix added a `SellerProfile` (`app/schemas/seller_profile.py`, configured via `config/seller_profile.json`) — target industries, company size, buyer titles, disqualifiers — injected into both the ICP and Persona prompts. It defaults to describing OutboundOS itself (an outbound-automation platform targeting B2B SaaS/sales-tech/martech/RevOps-tooling companies).
+This is the correct behavior for a real deployment, but it creates a deliberate mismatch with the benchmark: OutboundBench's `icp_target` (`app/evaluation/outboundbench_loader.py::_estimate_icp_target`) is a generic heuristic that rewards SaaS/fintech/devtools/cybersecurity broadly, with no concept of a specific seller. A genuinely seller-anchored score will diverge from it for companies outside that seller's target market — not because the agent is wrong, but because the two are answering different implicit questions. Closing this would require ground truth that is *also* parameterized by a seller profile.
 
-**This is more correct behavior, and it made the ICP benchmark score go down, not up.** Here's why: OutboundBench's `icp_target` ground truth (`app/evaluation/outboundbench_loader.py::_estimate_icp_target`) is itself a generic heuristic — it rewards SaaS/fintech/devtools/cybersecurity industries broadly, with no concept of any specific seller. Once the agent started scoring fit against a real, narrower seller profile, it correctly scored companies outside that profile's target market (Stripe/fintech, cloud infra, devtools, cybersecurity) lower than the generic ground truth expects — because they genuinely are a worse fit for *this specific seller*, even though they're perfectly good companies in the abstract.
-
-In other words: the agent and the benchmark are now answering two different implicit questions — "is this a good fit for OutboundOS specifically" (agent, after the fix) vs. "is this a generically impressive/tech-forward B2B company" (ground truth, unchanged). This is a benchmark methodology limitation, not a regression — a benchmark that wants to score seller-specific ICP fit would need ground truth that's *also* parameterized by a seller profile, which OutboundBench doesn't have.
-
-Persona accuracy, by contrast, **improved slightly** (27% → 29%) after two rounds of prompt tuning — the first attempt over-indexed on the seller's target buyer titles and collapsed to picking "VP Sales" for nearly every company; the fix was to make company-specific signals (industry, product, tech stack) primary and the seller profile a secondary tie-breaker only. Worth knowing if asked "did you get it right the first try" — no, and here's the honest story of what broke and how it was diagnosed.
+Persona selection needed two rounds of prompt tuning to avoid collapsing onto a single dominant answer once seller context was added (first over-indexing on the seller's target buyer titles → nearly always "VP Sales"; then onto "Head of AI" because AI-feature mentions are near-universal in 2026 marketing copy). The fix was to make company-specific signals (industry, product, tech stack) primary and the seller profile a secondary tie-breaker.
 
 ---
 
 ## Official Results
 
 **Official baseline:** [`data/benchmark_results.json`](../data/benchmark_results.json)  
-**Run ID:** `eval-20260711-145039` · **Generated:** 2026-07-11 · **n=100** · **Live agents**
+**Run ID:** `eval-20260718-232055` · **Generated:** 2026-07-18 · **n=100** · **Live agents**
 
 | Metric | Score | Assessment |
 |--------|-------|------------|
-| Research accuracy | **98%** | Strong — industry extraction from live web evidence |
-| Pain point accuracy | **87%** | Strong — evidence-backed pain identification |
-| Email quality | **96%** | Strong — pain-grounded outreach with CTA (v2 composite metric) |
-| Reviewer agreement | **98%** | Strong — reviewer decisions align with quality expectations |
-| ICP accuracy | **72%** | **Dropped from 91%, on purpose** — now scored against a real seller profile instead of a generic heuristic; diverges from seller-agnostic ground truth (see above) |
-| Persona accuracy | **29%** | **Gap** — coarse buyer enum vs natural-language GT personas (slightly improved from 27%) |
+| Research accuracy | **96%** | Strong — industry extraction from live web evidence |
+| Email quality | **83%** | Strong — pain-grounded outreach with CTA |
+| ICP accuracy | **82%** | Solid — scored against a real seller profile (see note above) |
+| Reviewer agreement | **88%** | Strong — reviewer decisions align with quality expectations |
+| Pain point accuracy | **70%** | Solid — semantic paraphrase-aware match vs human labels |
+| Persona accuracy | **49%** | **Gap** — coarse buyer enum vs natural-language GT personas |
 
 | Operations | Value |
 |------------|-------|
-| Avg latency | 50.9 s / company (up from 38.9s — this run hit intermittent Tavily search failures, gracefully absorbed but added retry latency) |
-| Avg cost | $0.0090 / company |
+| Avg latency | ~35 s / company |
+| Avg cost | ~$0.011 / company |
 | Concurrency | 2 |
-| Total runtime | ~43 min |
+| Total runtime | ~30 min |
 
-### Historical baselines (context only — do not mix metric versions)
+### Metric-methodology comparison (same human-authored dataset, n=100)
 
-| Run ID | n | Metrics | Research | ICP | Pain | Persona | Email | Reviewer |
-|--------|---|---------|----------|-----|------|---------|-------|----------|
-| `eval-20260711-145039` | 100 | **v2 + seller profile (official)** | 0.98 | 0.72 | 0.87 | 0.29 | 0.96 | 0.98 |
-| `eval-20260706-045418` | 100 | v2, no seller profile | 0.97 | 0.91 | 0.89 | 0.27 | 0.96 | 0.97 |
-| `eval-20260706-040559` | 100 | v1 email/reviewer | 0.98 | 0.92 | 0.92 | 0.11 | 0.06 | 0.00 |
-| `eval-20260706-041432` | 5 | v2 smoke test | 1.00 | 0.94 | 0.80 | 0.20 | 0.97 | 1.00 |
+| Run ID | Pain scoring | Pain | Email | Notes |
+|--------|--------------|------|-------|-------|
+| **`eval-20260718-232055`** | **token + semantic (official)** | **0.70** | **0.83** | Paraphrase-aware scoring |
+| `eval-20260718-224055` | token only | 0.59 | 0.76 | Same dataset, before the semantic fix |
 
-Use **`eval-20260711-145039`** for resume and README citations. The `eval-20260706-045418` row is kept for context — it's the last run *before* the ICP/Persona agents were made seller-profile-aware, which is why its ICP number is higher for reasons explained above, not because it's a "better" run.
+The jump in pain-point (0.59 → 0.70) and email (0.76 → 0.83) comes entirely from the metric change — the agent didn't change between these runs. Token-only scoring was penalizing correct pain points that were phrased differently from the human labels; the semantic band gives paraphrases credit. Both runs use the same human-authored ground truth.
 
 ---
 
@@ -157,7 +153,7 @@ make eval-outboundbench
 
 # Smoke test (5 companies)
 uv run python -m app.evaluation.run \
-  --dataset data/outboundbench_companies.csv \
+  --dataset data/human_ground_truth/outboundbench_human.csv \
   --dataset-size 5 \
   --max-concurrency 2 \
   --quality-threshold 0.75
@@ -173,17 +169,17 @@ uv run python -m app.evaluation.publish_benchmark \
 
 ## Resume-Safe Claims
 
-Use these (backed by official n=100 baseline `eval-20260711-145039`):
+Use these (backed by official n=100 baseline `eval-20260718-232055`):
 
-- Built **OutboundBench** — 100-company evidence-grounded eval dataset (89/100 passed automated validation).
+- Built **OutboundBench** — a 100-company evidence-grounded eval dataset with **human-authored** ground truth labeled from real web evidence.
 - Multi-agent **LangGraph** pipeline with live **Firecrawl/Tavily** research and structured **OpenAI** agents.
-- **98% research accuracy** and **87% pain-point accuracy** on OutboundBench (n=100).
-- **96% email quality** and **98% reviewer agreement** with evidence-grounded outreach generation.
-- Evaluated at **~$0.009/company** and **~51s latency** with cost/token tracking.
-- ICP and Persona scoring are grounded in an explicit, configurable **seller profile** (`config/seller_profile.json`) instead of scoring in a vacuum — a real gap that was found and fixed.
+- **96% research accuracy** and **70% pain-point accuracy** (paraphrase-aware scoring) on OutboundBench (n=100).
+- **83% email quality** and **88% reviewer agreement** with evidence-grounded outreach generation.
+- Designed a **semantic evaluation metric** (embedding-cosine tolerance band + token-overlap floor) that measures meaning, not vocabulary — verified it recovered credit for correct paraphrases the token-only metric was scoring as zero.
+- Evaluated at **~$0.011/company** and **~35s latency** with cost/token tracking.
+- ICP and Persona scoring are grounded in an explicit, configurable **seller profile** (`config/seller_profile.json`) instead of scoring in a vacuum.
 
 Avoid overstating:
 
-- Persona targeting is the main bottleneck (**29%** accuracy) — cite as known gap, not a strength.
-- ICP accuracy (**72%**) dropped from a prior 91% baseline *on purpose* after the seller-profile fix — cite the reason (benchmark ground truth is seller-agnostic; the agent is now correctly more seller-specific), don't just quote the number without context.
-- Do not quote email/reviewer scores from pre-v2 metric runs (`eval-20260706-040559`).
+- Persona targeting is the main bottleneck (**49%** accuracy) — cite as known gap, not a strength.
+- ICP accuracy (**82%**) reflects scoring against a real seller profile that the benchmark's generic ground truth doesn't model — cite the mismatch, don't imply the two measure the same thing.

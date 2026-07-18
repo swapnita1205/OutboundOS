@@ -3,12 +3,14 @@ from pydantic import BaseModel, Field
 from app.schemas.company_summary import CompanySummary
 from app.schemas.pain_points import PainPoint
 from app.schemas.persona import PersonaSelection
+from app.schemas.seller_profile import SellerProfile
 
 
 class MessagingAgentInput(BaseModel):
     company_summary: CompanySummary
     pain_points: list[PainPoint] = Field(default_factory=list)
     persona_selection: PersonaSelection
+    seller_profile: SellerProfile = Field(default_factory=SellerProfile)
 
 
 class OutboundMessageBundle(BaseModel):

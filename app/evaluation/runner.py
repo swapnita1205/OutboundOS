@@ -15,9 +15,11 @@ from app.evaluation.models import (
     default_history_dir,
     now_utc,
 )
+from app.evaluation.semantic import SemanticMatcher
 from app.evaluation.storage import append_historical_run, load_historical_runs, write_report_files
 from app.graph.builder import build_graph
 from app.graph.state import OutboundWorkflowState, create_initial_state
+from app.utils.settings import get_settings
 
 
 class EvaluationRunner:
@@ -37,8 +39,11 @@ class EvaluationRunner:
     async def run(self) -> EvaluationReport:
         dataset = self._load_dataset()
         graph = build_graph()
+        # One matcher for the whole run so embeddings of repeated ground-truth
+        # texts are cached across companies.
+        semantic = SemanticMatcher(get_settings())
         semaphore = asyncio.Semaphore(self.max_concurrency)
-        tasks = [self._evaluate_one(graph, semaphore, sample) for sample in dataset]
+        tasks = [self._evaluate_one(graph, semaphore, sample, semantic) for sample in dataset]
         records = await asyncio.gather(*tasks)
         summary = _summarize(records, dataset_size=len(dataset))
         return EvaluationReport(summary=summary, records=records)
@@ -55,6 +60,7 @@ class EvaluationRunner:
         graph: Any,
         semaphore: asyncio.Semaphore,
         sample: EvaluationSample,
+        semantic: SemanticMatcher,
     ) -> EvaluationRecord:
         async with semaphore:
             state = create_initial_state(
@@ -66,7 +72,7 @@ class EvaluationRunner:
             )
             result = await graph.ainvoke(state)
             typed_result = cast(OutboundWorkflowState, result)
-            return score_record(sample, typed_result)
+            return await score_record(sample, typed_result, semantic=semantic)
 
 
 def export_evaluation_artifacts(report: EvaluationReport, output_root: Path | None = None) -> Path:

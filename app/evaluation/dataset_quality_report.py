@@ -85,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input",
         type=str,
-        default="data/outboundbench_companies.csv",
+        default="data/human_ground_truth/outboundbench_human.csv",
     )
     return parser.parse_args()
 

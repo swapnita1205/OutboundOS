@@ -8,6 +8,7 @@ from app.agents.prompts import PAIN_POINT_SYSTEM_PROMPT, PAIN_POINT_USER_TEMPLAT
 from app.agents.runtime import get_agent_llm, live_agents_enabled
 from app.schemas.company_summary import CompanySummary
 from app.schemas.pain_points import PainPoint, PainPointAgentInput, PainPointOutput
+from app.schemas.seller_profile import SellerProfile
 from app.tools.llm_client import StructuredLLMClient
 from app.utils.settings import Settings, get_settings
 
@@ -25,7 +26,9 @@ class PainPointAgent:
         logger.info("pain_point_agent_started | %s", {"company": summary.company})
 
         if live_agents_enabled(resolved_settings):
-            result = await self._run_live(summary, agent_input.hiring_trends, resolved_settings)
+            result = await self._run_live(
+                summary, agent_input.hiring_trends, agent_input.seller_profile, resolved_settings
+            )
         else:
             result = self._run_heuristic(summary, agent_input.hiring_trends)
 
@@ -43,6 +46,7 @@ class PainPointAgent:
         self,
         summary: CompanySummary,
         hiring_trends: list[str],
+        seller_profile: SellerProfile,
         settings: Settings,
     ) -> PainPointOutput:
         evidence_items = [
@@ -56,6 +60,7 @@ class PainPointAgent:
             await llm.parse(
                 system_prompt=PAIN_POINT_SYSTEM_PROMPT,
                 user_prompt=PAIN_POINT_USER_TEMPLATE.format(
+                    seller_profile=seller_profile.model_dump_json(),
                     company_name=summary.company,
                     industry=summary.industry,
                     description=summary.description,

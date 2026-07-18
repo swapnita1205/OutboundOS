@@ -1,40 +1,40 @@
 {
   "schema_version": "1.0",
-  "published_at": "2026-07-11T19:46:50.852603+00:00",
+  "published_at": "2026-07-18T23:31:52.271104+00:00",
   "status": "official",
   "dataset": {
     "name": "OutboundBench",
-    "path": "data/outboundbench_companies.csv",
+    "path": "data/human_ground_truth/outboundbench_human.csv",
     "size": 100
   },
   "run": {
-    "run_id": "eval-20260711-145039",
-    "generated_at": "2026-07-11T14:50:39.686277+00:00",
-    "report_dir": "app/evaluation/history/eval-20260711-145039",
+    "run_id": "eval-20260718-232055",
+    "generated_at": "2026-07-18T23:20:55.248939+00:00",
+    "report_dir": "app/evaluation/history/eval-20260718-232055",
     "quality_threshold": 0.75,
     "max_concurrency": 2,
     "agents_mode": "live"
   },
   "metrics": {
-    "research_accuracy": 0.98,
-    "icp_accuracy": 0.7215,
-    "pain_point_accuracy": 0.87,
-    "persona_accuracy": 0.29,
-    "email_quality": 0.9643,
-    "reviewer_agreement": 0.975
+    "research_accuracy": 0.96,
+    "icp_accuracy": 0.8163,
+    "pain_point_accuracy": 0.7009,
+    "persona_accuracy": 0.49,
+    "email_quality": 0.8335,
+    "reviewer_agreement": 0.88
   },
   "operations": {
-    "avg_latency_ms": 50890.7,
-    "avg_cost_usd": 0.009035,
-    "avg_tokens": 3614.0
+    "avg_latency_ms": 35320.5,
+    "avg_cost_usd": 0.011252,
+    "avg_tokens": 4500.6
   },
   "metric_definitions": {
     "research_accuracy": "Token overlap between predicted and ground-truth industry labels.",
     "icp_accuracy": "1 - |predicted_icp - target_icp| / 100.",
-    "pain_point_accuracy": "Fraction of GT pain points with sufficient token overlap in predictions.",
+    "pain_point_accuracy": "Per GT pain point, max of token-overlap match and embedding-cosine paraphrase match (text-embedding-3-small; full credit >= 0.60 cosine, zero <= 0.35, linear between). Mean over GT pain points.",
     "persona_accuracy": "Role-family overlap between predicted buyer enum and GT persona text.",
-    "email_quality": "Weighted composite: company name (20%), pain overlap (40%), reference facts (25%), CTA (15%).",
+    "email_quality": "Weighted composite: company name (20%), pain coverage (40%, token or embedding-cosine vs email sentences), reference facts (25%, token or whole-email cosine), CTA (15%).",
     "reviewer_agreement": "Agreement with expected reviewer decision derived from research + email quality."
   },
-  "notes": "Official n=100 OutboundBench baseline after the seller-profile fix (2026-07-11): ICP and Persona agents now score/select relative to an explicit SellerProfile (config/seller_profile.json) instead of scoring in a vacuum. ICP accuracy dropped (91%->72%) as an expected, honest consequence: OutboundBench's icp_target ground truth is itself a generic, seller-agnostic heuristic, so a correctly seller-anchored score will diverge from it for companies outside that seller's specific target market. Persona accuracy improved slightly (27%->29%) after two rounds of prompt tuning to prevent the persona agent from collapsing to a single dominant answer (first VP Sales, then Head of AI) once seller context was introduced."
+  "notes": "Official n=100 OutboundBench baseline (2026-07-18). Ground truth is human-authored from real web evidence (Firecrawl/Tavily scrapes). Pain-point and email scoring combine exact token overlap with embedding-cosine paraphrase matching (text-embedding-3-small; full credit at >=0.60 cosine, zero at <=0.35, linear between), so semantically-equivalent phrasing earns credit instead of scoring zero on vocabulary differences. ICP accuracy reflects the ICP agent scoring against an explicit SellerProfile (config/seller_profile.json); the benchmark's icp_target is a generic seller-agnostic heuristic, so the two answer subtly different questions. Persona (49%) remains the primary product gap: coarse 8-value buyer enum vs rich natural-language ground-truth personas."
 }

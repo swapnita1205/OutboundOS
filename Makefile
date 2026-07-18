@@ -16,7 +16,7 @@ eval:
 
 eval-outboundbench:
 	uv run python -m app.evaluation.run \
-		--dataset data/outboundbench_companies.csv \
+		--dataset data/human_ground_truth/outboundbench_human.csv \
 		--dataset-size 100 \
 		--max-concurrency 2 \
 		--quality-threshold 0.75
@@ -28,14 +28,11 @@ publish-benchmark:
 benchmark:
 	uv run python -m app.evaluation.benchmark --dataset-size 100 --rounds 3
 
-outboundbench:
-	uv run python -m app.dataset.build_outboundbench --input app/dataset/seed_companies.csv --output data/outboundbench_companies.csv --limit 100
-
 outboundbench-report:
-	uv run python -m app.evaluation.dataset_quality_report --input data/outboundbench_companies.csv
+	uv run python -m app.evaluation.dataset_quality_report --input data/human_ground_truth/outboundbench_human.csv
 
-outboundbench-revalidate:
-	uv run python -m app.dataset.revalidate_outboundbench --input data/outboundbench_companies.csv
+human-ground-truth:
+	uv run python -m app.dataset.finalize_human_ground_truth
 
 test:
 	uv run pytest

@@ -60,6 +60,7 @@ async def pain_point_analysis_node(state: OutboundWorkflowState) -> OutboundWork
         PainPointAgentInput(
             company_summary=updated["company_summary"],
             hiring_trends=updated["hiring_trends"],
+            seller_profile=updated["seller_profile"],
         )
     )
     updated["pain_points"] = pain_points
@@ -94,6 +95,7 @@ async def email_generation_node(state: OutboundWorkflowState) -> OutboundWorkflo
             company_summary=updated["company_summary"],
             pain_points=updated["pain_points"].top_pain_points,
             persona_selection=updated["persona_selection"],
+            seller_profile=updated["seller_profile"],
         )
     )
     updated["message_bundle"] = bundle
@@ -111,6 +113,7 @@ async def rewrite_node(state: OutboundWorkflowState) -> OutboundWorkflowState:
             company_summary=updated["company_summary"],
             pain_points=updated["pain_points"].top_pain_points,
             persona_selection=updated["persona_selection"],
+            seller_profile=updated["seller_profile"],
         )
     )
     updated["message_bundle"] = bundle

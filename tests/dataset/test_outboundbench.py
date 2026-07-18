@@ -3,7 +3,6 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.dataset.build_outboundbench import load_seed_companies
 from app.dataset.exporters import export_csv, export_jsonl, export_review_queue
 from app.dataset.schemas import (
     EnrichmentBundle,
@@ -12,7 +11,6 @@ from app.dataset.schemas import (
     OutboundBenchRecord,
     OutreachValidation,
     PainPointExtraction,
-    SeedCompany,
 )
 from app.dataset.validators import (
     build_record,
@@ -155,18 +153,6 @@ def test_needs_human_review_logic() -> None:
 def test_source_quality_score_logic() -> None:
     score = compute_source_quality_score(_sample_bundle())
     assert score >= 0.7
-
-
-def test_load_seed_companies(tmp_path: Path) -> None:
-    seed_path = tmp_path / "seed.csv"
-    with seed_path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["company_name", "website", "category", "notes"])
-        writer.writerow(["Acme", "https://acme.com", "saas", "note"])
-    seeds = load_seed_companies(seed_path, limit=1)
-    assert seeds == [
-        SeedCompany(company_name="Acme", website="https://acme.com", category="saas", notes="note")
-    ]
 
 
 def test_validate_outreach_allows_paraphrased_pain_point() -> None:

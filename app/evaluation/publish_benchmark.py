@@ -13,14 +13,17 @@ METRIC_DEFINITIONS = {
     ),
     "icp_accuracy": "1 - |predicted_icp - target_icp| / 100.",
     "pain_point_accuracy": (
-        "Fraction of GT pain points with sufficient token overlap in predictions."
+        "Per GT pain point, max of token-overlap match and embedding-cosine "
+        "paraphrase match (text-embedding-3-small; full credit >= 0.60 cosine, "
+        "zero <= 0.35, linear between). Mean over GT pain points."
     ),
     "persona_accuracy": (
         "Role-family overlap between predicted buyer enum and GT persona text."
     ),
     "email_quality": (
-        "Weighted composite: company name (20%), pain overlap (40%), "
-        "reference facts (25%), CTA (15%)."
+        "Weighted composite: company name (20%), pain coverage (40%, token or "
+        "embedding-cosine vs email sentences), reference facts (25%, token or "
+        "whole-email cosine), CTA (15%)."
     ),
     "reviewer_agreement": (
         "Agreement with expected reviewer decision derived from research + email quality."
@@ -46,7 +49,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=Path,
-        default=Path("data/outboundbench_companies.csv"),
+        default=Path("data/human_ground_truth/outboundbench_human.csv"),
         help="OutboundBench dataset path used for the run",
     )
     parser.add_argument(

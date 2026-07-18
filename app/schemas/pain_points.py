@@ -1,11 +1,13 @@
 from pydantic import BaseModel, Field
 
 from app.schemas.company_summary import CompanySummary
+from app.schemas.seller_profile import SellerProfile
 
 
 class PainPointAgentInput(BaseModel):
     company_summary: CompanySummary
     hiring_trends: list[str] = Field(default_factory=list)
+    seller_profile: SellerProfile = Field(default_factory=SellerProfile)
 
 
 class PainPoint(BaseModel):

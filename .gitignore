@@ -15,3 +15,6 @@ __pycache__/
 .DS_Store
 docs/WALKTHROUGH_GUIDE.md
 docs/WALKTHROUGH_SCRIPT.md
+docs/CODEBASE_QA.md
+docs/ARCHITECTURE_DIAGRAM.md
+docs/OutboundOS_Architecture.excalidraw
